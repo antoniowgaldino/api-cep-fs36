@@ -1,22 +1,40 @@
 const cep = document.querySelector('#cep');
 const numero = document.querySelector('#numero');
 
-async function findEstados() {
-    var url = `https://servicodados.ibge.gov.br/api/v1/localidades/estados`
-    console.log(url)
+const carregarListaEstados = async () => {
+    const ufSelect = document.querySelector('#uf');
 
-    await fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            data.sort((a, b) => (a.sigla > b.sigla) ? 1 : -1)
+    const res = await axios.get('https://servicodados.ibge.gov.br/api/v1/localidades/estados');
+    console.log('estados', res.data);
 
-            let estados = ''
-            data.sort().forEach(e => estados += `<option value=${e.sigla}>${e.sigla}</option>`);
-            console.log(estados);
+    const listaEstados = res.data.sort((a, b) => (a.nome > b.nome) ? 1 : -1);
+    let optionEstados = '';
 
-            let uf = document.getElementById('uf');
-            uf.innerHTML = estados;
-        })
+    listaEstados.forEach((estado) => {
+        optionEstados = optionEstados + `<option value="${estado.sigla}">${estado.nome}</option>`;
+    });
+
+    ufSelect.innerHTML = optionEstados;
+}
+
+carregarListaEstados();
+
+const carregarListaCidadesPorUf = async siglaUf => {
+    const cidadeSelect = document.querySelector('#localidade');
+
+    const res = await axios.get(`https://brasilapi.com.br/api/ibge/municipios/v1/${siglaUf}`);
+    console.log('cidades', res.data);
+
+    // const listaCidades = res.data.sort((a, b) => (a.nome > b.nome) ? 1 : -1);
+    const listaCidades = res.data;
+
+    let optionCidades = '';
+
+    listaCidades.forEach((cidade) => {
+        optionCidades = optionCidades + `<option value="${cidade.nome}">${cidade.nome}</option>`;
+    });
+
+    cidadeSelect.innerHTML = optionCidades;
 }
 
 const consultaCep = async () => {
@@ -37,34 +55,18 @@ const consultaCep = async () => {
     }
 }
 
-const preencherCampos = data => {
-    // if (data.uf) {
-    //     await getCidades(data.uf)
-    // }
+const preencherCampos = async data => {
 
-    const logradouro = document.getElementById('logradouro');
-    const bairro = document.getElementById('bairro');
-    const uf = document.getElementById('uf');
+    const logradouro = document.querySelector('#logradouro');
+    const bairro = document.querySelector('#bairro');
+    const uf = document.querySelector('#uf');
+    const cidade = document.querySelector('#localidade');
 
     logradouro.value = data.street;
     bairro.value = data.neighborhood;
-    uf.value = data.uf;
-}
+    uf.value = data.state;
 
-const getCidades = async uf => {
-    await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/distritos`)
-        .then(response => response.json())
-        .then(data => {
-            // ordenar pelo nome
-            data.sort((a, b) => (a.nome > b.nome) ? 1 : -1)
-            //preencheInputsEndereco(data)
-            //console.log('cidades', data)
-            
-            let cidades = ''
-            data.forEach(e => cidades += `<option value=${e.nome}>${e.nome}</option>`);
-            console.log(cidades)
+    await carregarListaCidadesPorUf(data.state);
 
-            let localidade = document.getElementById('localidade');
-            localidade.innerHTML = cidades; 
-        })
+    cidade.value = data.city;
 }
